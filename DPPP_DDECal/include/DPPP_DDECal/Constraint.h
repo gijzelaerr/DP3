@@ -65,7 +65,23 @@ public:
     std::vector<std::vector<dcomplex> >& solutions,
     double time) = 0;
 
+  /**
+  * Initialize the dimensions for the constraint. Should be overridden when
+  * something more than assigning dimensions is needed (e.g. resizing vectors).
+  */
+  virtual void InitializeDimensions(size_t nAntennas,
+                                    size_t nDirections,
+                                    size_t nChannelBlocks)
+  {
+    _nAntennas = nAntennas;
+    _nDirections = nDirections;
+    _nChannelBlocks = nChannelBlocks;
+  }
+
   virtual void showTimings (std::ostream&, double) const {}
+
+protected:
+  size_t _nAntennas, _nDirections, _nChannelBlocks;
 };
 
 /**
@@ -123,11 +139,8 @@ class CoreConstraint : public Constraint
 public:
   CoreConstraint() { }
 
-  void initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks, const std::set<size_t>& coreAntennas)
+  void initialize(const std::set<size_t>& coreAntennas)
   {
-    _nAntennas = nAntennas;
-    _nDirections = nDirections;
-    _nChannelBlocks = nChannelBlocks;
     _coreAntennas = coreAntennas;
   }
   
@@ -136,7 +149,6 @@ public:
                     double time);
   
 private:
-  size_t _nAntennas, _nDirections, _nChannelBlocks;
   std::set<size_t> _coreAntennas;
 };
 

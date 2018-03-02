@@ -25,8 +25,10 @@ public:
   
   TECConstraintBase(Mode mode);
 
-  void initialize(size_t nAntennas, size_t nDirections, 
-                  size_t nChannelBlocks, const double* frequencies);
+  /** Initialize metadata with frequencies, resize some members.
+   * Should be called after InitializeDimensions.
+   */
+  void initialize(const double* frequencies);
   
 protected:
   virtual void initializeChild() { }
@@ -34,7 +36,6 @@ protected:
   void applyReferenceAntenna(std::vector<std::vector<dcomplex> >& solutions) const;
   
   Mode _mode;
-  size_t _nAntennas, _nDirections, _nChannelBlocks;
   std::vector<PhaseFitter> _phaseFitters;
 };
 

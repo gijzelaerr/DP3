@@ -340,15 +340,21 @@ namespace LOFAR {
       }
 
       for (uint i=0; i<itsConstraints.size();++i) {
+        // Initialize the constraint with some common metadata
+        itsConstraints[i]->InitializeDimensions(info().antennaNames().size(),
+                                                itsDirections.size(),
+                                                nChannelBlocks);
+
         // Different constraints need different information. Determine if the constraint is
         // of a type that needs more information, and if so initialize the constraint.
         CoreConstraint* coreConstraint = dynamic_cast<CoreConstraint*>(itsConstraints[i].get());
         if(coreConstraint != 0)
         {
+          // Take antenna with index 0 as reference station
           double
-            refX = antennaPos[i][0],
-            refY = antennaPos[i][1],
-            refZ = antennaPos[i][2];
+            refX = antennaPos[0][0],
+            refY = antennaPos[0][1],
+            refZ = antennaPos[0][2];
           std::set<size_t> coreAntennaIndices;
           const double coreDistSq = itsCoreConstraint*itsCoreConstraint;
           for(size_t ant=0; ant!=antennaPos.size(); ++ant)
@@ -361,21 +367,13 @@ namespace LOFAR {
             if(distSq <= coreDistSq)
               coreAntennaIndices.insert(ant);
           }
-          coreConstraint->initialize(info().antennaNames().size(),
-            itsDirections.size(),
-            info().nchan(),
-            coreAntennaIndices);
+          coreConstraint->initialize(coreAntennaIndices);
         }
         
         ScreenConstraint* screenConstraint = dynamic_cast<ScreenConstraint*>(itsConstraints[i].get());
         if(screenConstraint != 0)
         {
-          screenConstraint->initialize(
-              info().antennaNames().size(),
-              itsDirections.size(),
-              nChannelBlocks,
-              &(itsChanBlockFreqs[0])
-          );
+          screenConstraint->initialize(&(itsChanBlockFreqs[0]));
           screenConstraint->setAntennaPositions(antennaPos);
           screenConstraint->setDirections(sourcePositions);
           screenConstraint->initPiercePoints();
@@ -405,21 +403,7 @@ namespace LOFAR {
         TECConstraintBase* tecConstraint = dynamic_cast<TECConstraintBase*>(itsConstraints[i].get());
         if(tecConstraint != 0)
         {
-          tecConstraint->initialize(info().antennaNames().size(),
-              itsDirections.size(),
-              nChannelBlocks,
-              &(itsChanBlockFreqs[0]));
-        }
-
-        RotationAndDiagonalConstraint* rotationAndDiagonalConstraint = dynamic_cast<RotationAndDiagonalConstraint*>(itsConstraints[i].get());
-        if(rotationAndDiagonalConstraint != 0)
-        {
-          rotationAndDiagonalConstraint->initialize(info().antennaNames().size(), itsDirections.size(), nChannelBlocks);
-        }
-        RotationConstraint* rotationConstraint = dynamic_cast<RotationConstraint*>(itsConstraints[i].get());
-        if(rotationConstraint != 0)
-        {
-          rotationConstraint->initialize(info().antennaNames().size(), itsDirections.size(), nChannelBlocks);
+          tecConstraint->initialize(&(itsChanBlockFreqs[0]));
         }
       }
 

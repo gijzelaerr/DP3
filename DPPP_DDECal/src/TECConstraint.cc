@@ -8,17 +8,11 @@
 
 TECConstraintBase::TECConstraintBase(Mode mode) :
   _mode(mode),
-  _nAntennas(0),
-  _nDirections(0),
-  _nChannelBlocks(0),
   _phaseFitters()
 {
 }
 
-void TECConstraintBase::initialize(size_t nAntennas, size_t nDirections, size_t nChannelBlocks, const double* frequencies) {
-  _nAntennas = nAntennas;
-  _nDirections = nDirections;
-  _nChannelBlocks = nChannelBlocks;
+void TECConstraintBase::initialize(const double* frequencies) {
   _phaseFitters.resize(
 #ifdef AOPROJECT
       omp_get_max_threads()
