@@ -21,6 +21,7 @@ public:
   {
   public:
     std::vector<double> vals;
+    std::vector<double> weights;
     std::string axes; // Comma-separated string with axis names, fastest varying last
     std::vector<size_t> dims;
     std::string name;
@@ -68,6 +69,7 @@ public:
   /**
   * Initialize the dimensions for the constraint. Should be overridden when
   * something more than assigning dimensions is needed (e.g. resizing vectors).
+  * Weights are initialized to 1. here.
   */
   virtual void InitializeDimensions(size_t nAntennas,
                                     size_t nDirections,
@@ -77,6 +79,12 @@ public:
     _nDirections = nDirections;
     _nChannelBlocks = nChannelBlocks;
   }
+
+  /**
+   * Set weights. The vector should contain an array of size nAntennas * nChannelBlocks,
+   * where the channel index varies fastest.
+   */
+  virtual void SetWeights(std::vector<double> &) {}
 
   virtual void showTimings (std::ostream&, double) const {}
 

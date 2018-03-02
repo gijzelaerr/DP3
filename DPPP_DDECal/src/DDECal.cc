@@ -326,6 +326,7 @@ namespace LOFAR {
       itsConstraintSols.resize(nSolTimes);
 
       size_t nChannelBlocks = info().nchan()/itsNChan;
+      itsChanBlockStart.resize(nChannelBlocks);
       itsChanBlockFreqs.resize(nChannelBlocks);
       for(size_t chBlock=0; chBlock!=nChannelBlocks; ++chBlock) {
         const size_t
@@ -336,8 +337,11 @@ namespace LOFAR {
             info().chanFreqs().data()+channelIndexStart,
             info().chanFreqs().data()+channelIndexEnd,
             0.0) / curChannelBlockSize;
+        itsChanBlockStart[chBlock] = channelIndexStart;
         itsChanBlockFreqs[chBlock] = meanfreq;
       }
+
+      itsWeights.resize(itsChanBlockStart.size()*info().nantenna());
 
       for (uint i=0; i<itsConstraints.size();++i) {
         // Initialize the constraint with some common metadata
@@ -582,7 +586,13 @@ namespace LOFAR {
       const size_t nCh = info().nchan();
       const size_t nCr = 4;
       
+      size_t nchanblocks = itsChanBlockStart.size();
+      size_t chanblock = 0;
+
       for (size_t ch=0; ch<nCh; ++ch) {
+        if (chanblock < nchanblocks-1 && ch == itsChanBlockStart[chanblock+1]) {
+          chanblock++;
+        }
         for (size_t bl=0; bl<nBl; ++bl) {
           for (size_t cr=0; cr<nCr; ++cr) {
             if (itsBufs[itsStepInSolInt].getFlags().data()[bl*nCr*nCh+ch*nCr+cr]) {
@@ -593,10 +603,12 @@ namespace LOFAR {
               }
             } else {
               // Premultiply non-flagged data with sqrt(weight)
-              double weight = sqrt(itsBufs[itsStepInSolInt].getWeights().data()[bl*nCr*nCh+ch*nCr+cr]);
-              itsDataPtrs[itsStepInSolInt][bl*nCr*nCh+ch*nCr+cr] *= weight;
+              double weight = itsBufs[itsStepInSolInt].getWeights().data()[bl*nCr*nCh+ch*nCr+cr];
+              itsDataPtrs[itsStepInSolInt][bl*nCr*nCh+ch*nCr+cr] *= sqrt(weight);
+              itsWeights[info().getAnt1()[bl]*nchanblocks + chanblock] += weight;
+              itsWeights[info().getAnt2()[bl]*nchanblocks + chanblock] += weight;
               for (size_t dir=0; dir<itsPredictSteps.size(); ++dir) {
-                itsModelDataPtrs[itsStepInSolInt][dir][bl*nCr*nCh+ch*nCr+cr] *= weight;
+                itsModelDataPtrs[itsStepInSolInt][dir][bl*nCr*nCh+ch*nCr+cr] *= sqrt(weight);
               }
             }
           }
@@ -608,11 +620,18 @@ namespace LOFAR {
       itsAvgTime += itsAvgTime + bufin.getTime();
 
       if (itsStepInSolInt==itsSolInt-1) {
+        for (uint constraint_num = 0; constraint_num < itsConstraints.size(); ++constraint_num) {
+          itsConstraints[constraint_num]->SetWeights(itsWeights);
+        }
+
         doSolve();
-            itsStepInSolInt=0;
+
+        // Clean up, prepare for next iteration
+        itsStepInSolInt=0;
         itsAvgTime=0;
         for (size_t dir=0; dir<itsResultSteps.size(); ++dir) {
           itsResultSteps[dir]->clear();
+          itsWeights.assign(itsWeights.size(), 0.);
         }
       } else {
         itsStepInSolInt++;
@@ -803,9 +822,22 @@ namespace LOFAR {
                 nextpos);
             }
 
+            // Put solution weights in a contiguous piece of memory
+            vector<double> weights;
+            if (!itsConstraintSols[0][constraintNum][solNameNum].weights.empty()) {
+              weights.resize(numSols);
+              vector<double>::iterator nextpos = weights.begin();
+              for (uint time=0; time<itsSols.size(); ++time) {
+                nextpos = std::copy(
+                  itsConstraintSols[time][constraintNum][solNameNum].weights.begin(),
+                  itsConstraintSols[time][constraintNum][solNameNum].weights.end(),
+                  nextpos);
+              }
+            }
+
             string solTabName = firstResult.name+"000";
             H5Parm::SolTab soltab = itsH5Parm.createSolTab(solTabName, firstResult.name, axes);
-            soltab.setValues(sols, vector<double>(),
+            soltab.setValues(sols, weights,
                              "CREATE by DPPP\n" +
                              Version::getInfo<DPPPVersion>("DPPP", "top") + "\n" +
                              "step " + itsName + " in parset: \n" +
