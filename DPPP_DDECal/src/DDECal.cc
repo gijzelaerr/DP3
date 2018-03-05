@@ -326,7 +326,7 @@ namespace LOFAR {
       itsConstraintSols.resize(nSolTimes);
 
       size_t nChannelBlocks = info().nchan()/itsNChan;
-      itsChanBlockStart.resize(nChannelBlocks);
+      itsChanBlockStart.resize(nChannelBlocks+1);
       itsChanBlockFreqs.resize(nChannelBlocks);
       for(size_t chBlock=0; chBlock!=nChannelBlocks; ++chBlock) {
         const size_t
@@ -340,8 +340,9 @@ namespace LOFAR {
         itsChanBlockStart[chBlock] = channelIndexStart;
         itsChanBlockFreqs[chBlock] = meanfreq;
       }
+      itsChanBlockStart[itsChanBlockStart.size()-1] = info().nchan();
 
-      itsWeights.resize(itsChanBlockStart.size()*info().nantenna());
+      itsWeights.resize(itsChanBlockFreqs.size()*info().nantenna());
 
       for (uint i=0; i<itsConstraints.size();++i) {
         // Initialize the constraint with some common metadata
@@ -586,11 +587,13 @@ namespace LOFAR {
       const size_t nCh = info().nchan();
       const size_t nCr = 4;
       
-      size_t nchanblocks = itsChanBlockStart.size();
+      size_t nchanblocks = itsChanBlockFreqs.size();
       size_t chanblock = 0;
 
+      double weightFactor = 1./(nCh*(info().nantenna()-1)*nCr*itsSolInt);
+
       for (size_t ch=0; ch<nCh; ++ch) {
-        if (chanblock < nchanblocks-1 && ch == itsChanBlockStart[chanblock+1]) {
+        if (ch == itsChanBlockStart[chanblock+1]) {
           chanblock++;
         }
         for (size_t bl=0; bl<nBl; ++bl) {
@@ -613,6 +616,10 @@ namespace LOFAR {
             }
           }
         }
+      }
+
+      for (auto& weight: itsWeights) {
+        weight *= weightFactor;
       }
 
       itsTimerPredict.stop();
