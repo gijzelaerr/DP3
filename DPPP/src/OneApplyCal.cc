@@ -455,14 +455,18 @@ namespace LOFAR {
           h5freqinterval = itsSolTab.getFreqInterval();
           ASSERT(h5freqinterval>0);
           freqUpsampleFactor = h5freqinterval/info().chanWidths()[0] + 0.5; // Round;
-          ASSERT(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5));
+          ASSERTSTR(near(h5freqinterval, freqUpsampleFactor*info().chanWidths()[0],1.e-5),
+                    "H5Parm freq interval ("<<h5freqinterval<<") is not an integer " <<
+                    "multiple of MS freq interval ("<<info().chanWidths()[0]<<")");
         }
 
         uint timeUpsampleFactor = numTimes;
         if (itsSolTab.hasAxis("time") && itsSolTab.getAxis("time").size > 1) {
           double h5timeInterval = itsSolTab.getTimeInterval();
           timeUpsampleFactor = h5timeInterval/itsTimeInterval+0.5; // Round
-          ASSERT(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5));
+          ASSERTSTR(near(h5timeInterval,timeUpsampleFactor*itsTimeInterval,1.e-5),
+                    "H5Parm time interval ("<<h5timeInterval<<") is not an integer " <<
+                    "multiple of MS time interval ("<<itsTimeInterval<<")");
         }
 
         // Figure out whether time or frequency is first axis
