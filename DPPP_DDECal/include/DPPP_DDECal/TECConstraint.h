@@ -1,6 +1,8 @@
 #ifndef TEC_CONSTRAINT_H
 #define TEC_CONSTRAINT_H
 
+#include <vector>
+
 #ifdef AOPROJECT
 #include "Constraint.h"
 #include "PhaseFitter.h"
@@ -30,6 +32,9 @@ public:
    */
   void initialize(const double* frequencies);
   
+  /** Propagate weights to the phase fitters */
+  virtual void SetWeights(std::vector<double>& weights);
+
 protected:
   virtual void initializeChild() { }
   
